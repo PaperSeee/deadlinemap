@@ -237,7 +237,7 @@ function triggerConfetti() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const colours = ["#00f5ff", "#ff2d78", "#9b59ff", "#00ff88", "#ffd700"];
+  const colours = ["#6366F1", "#8B5CF6", "#10B981", "#F59E0B", "#EC4899", "#3B82F6"];
   const particles = Array.from({ length: 120 }, () => ({
     x: Math.random() * canvas.width,
     y: -10,

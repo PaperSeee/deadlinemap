@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}DeadlineMap ICHEC{% endblock %}</title>
 
-  <!-- Google Fonts : Russo One (game) + Space Grotesk (humain) + Bangers (impact) -->
+  <!-- Google Fonts : Inter + Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Space+Grotesk:wght@400;500;600;700&family=Bangers&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -16,17 +17,6 @@
 </head>
 <body>
 
-  <!-- ========== PARTICLES BACKGROUND ========== -->
-  <div class="particles" aria-hidden="true">
-    <div class="particle" style="--i:0"></div><div class="particle" style="--i:1"></div>
-    <div class="particle" style="--i:2"></div><div class="particle" style="--i:3"></div>
-    <div class="particle" style="--i:4"></div><div class="particle" style="--i:5"></div>
-    <div class="particle" style="--i:6"></div><div class="particle" style="--i:7"></div>
-    <div class="particle" style="--i:8"></div><div class="particle" style="--i:9"></div>
-    <div class="particle" style="--i:10"></div><div class="particle" style="--i:11"></div>
-    <div class="particle" style="--i:12"></div><div class="particle" style="--i:13"></div>
-    <div class="particle" style="--i:14"></div><div class="particle" style="--i:15"></div>
-  </div>
 
   <!-- ========== NAVBAR — GAME HUD ========== -->
   <nav class="navbar">
@@ -54,7 +44,7 @@
         <li>
           <a href="{{ url_for('deadlines_list') }}"
              class="nav-link {% if 'deadline' in request.endpoint %}active{% endif %}">
-            <span class="nav-icon">⚔️</span><span class="nav-label">Quêtes</span>
+            <span class="nav-icon">📋</span><span class="nav-label">Deadlines</span>
             {% if 'deadline' in request.endpoint %}<span class="nav-active-dot"></span>{% endif %}
           </a>
         </li>
@@ -68,7 +58,7 @@
         <li>
           <a href="{{ url_for('ai_report') }}"
              class="nav-link nav-link-ai {% if request.endpoint == 'ai_report' %}active{% endif %}">
-            <span class="nav-icon">🤖</span><span class="nav-label">IA Oracle</span>
+            <span class="nav-icon">🤖</span><span class="nav-label">IA</span>
             {% if request.endpoint == 'ai_report' %}<span class="nav-active-dot"></span>{% endif %}
           </a>
         </li>
@@ -79,7 +69,6 @@
       </button>
 
     </div>
-    <div class="navbar-glow-line"></div>
   </nav>
 
   <!-- ========== FLASH MESSAGES ========== -->
