@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Mes Cours — DeadlineMap ICHEC{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📚 Mes Cours ICHEC</h1>
+    <p class="page-subtitle">{{ courses | length }} cours enregistré(s)</p>
+  </div>
+  <a href="{{ url_for('course_new') }}" class="btn btn-primary btn-lg">➕ Nouveau cours</a>
+</div>
+
+{% if courses %}
+  <div class="courses-grid">
+    {% for course in courses %}
+      <div class="course-card" style="border-top: 5px solid {{ course.color }}">
+
+        <!-- Bande de couleur et initiales -->
+        <div class="course-header" style="background: {{ course.color }}20">
+          <div class="course-avatar" style="background: {{ course.color }}">
+            {{ course.name[:2].upper() }}
+          </div>
+          <div class="course-info">
+            <h3 class="course-name">{{ course.name }}</h3>
+            <div class="course-prof">👤 {{ course.professor }}</div>
+          </div>
+        </div>
+
+        <div class="course-body">
+          <div class="course-meta">
+            <span class="course-credits">🎓 {{ course.credits }} ECTS</span>
+            <span class="course-dl-count">
+              📋 {{ dl_count_by_course.get(course.id, 0) }} deadline(s)
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="course-actions">
+          <a href="{{ url_for('deadlines_list', course=course.id) }}"
+             class="btn btn-sm btn-view">📋 Voir deadlines</a>
+          <form method="POST" action="{{ url_for('course_delete', course_id=course.id) }}"
+                style="display:inline"
+                onsubmit="return confirm('Supprimer \'{{ course.name }}\' ? Les deadlines associées seront désassociées.')">
+            <button type="submit" class="btn btn-sm btn-delete">🗑️</button>
+          </form>
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="empty-state section-card">
+    <div class="empty-emoji">📚</div>
+    <h3 class="empty-title">Aucun cours enregistré !</h3>
+    <p class="empty-sub">Ajoute tes cours ICHEC pour organiser tes deadlines par matière.</p>
+    <a href="{{ url_for('course_new') }}" class="btn btn-primary">➕ Ajouter un cours</a>
+  </div>
+{% endif %}
+
+{% endblock %}

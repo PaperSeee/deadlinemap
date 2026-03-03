@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}DeadlineMap ICHEC{% endblock %}</title>
+
+  <!-- Google Fonts : Russo One (game) + Space Grotesk (humain) + Bangers (impact) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Space+Grotesk:wght@400;500;600;700&family=Bangers&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ========== PARTICLES BACKGROUND ========== -->
+  <div class="particles" aria-hidden="true">
+    <div class="particle" style="--i:0"></div><div class="particle" style="--i:1"></div>
+    <div class="particle" style="--i:2"></div><div class="particle" style="--i:3"></div>
+    <div class="particle" style="--i:4"></div><div class="particle" style="--i:5"></div>
+    <div class="particle" style="--i:6"></div><div class="particle" style="--i:7"></div>
+    <div class="particle" style="--i:8"></div><div class="particle" style="--i:9"></div>
+    <div class="particle" style="--i:10"></div><div class="particle" style="--i:11"></div>
+    <div class="particle" style="--i:12"></div><div class="particle" style="--i:13"></div>
+    <div class="particle" style="--i:14"></div><div class="particle" style="--i:15"></div>
+  </div>
+
+  <!-- ========== NAVBAR — GAME HUD ========== -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+
+      <a href="{{ url_for('index') }}" class="navbar-brand">
+        <div class="brand-icon-wrap">
+          <span class="brand-icon">📅</span>
+          <div class="brand-ping"></div>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">DeadlineMap</span>
+          <span class="brand-school">ICHEC Brussels</span>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li>
+          <a href="{{ url_for('index') }}"
+             class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+            <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
+            {% if request.endpoint == 'index' %}<span class="nav-active-dot"></span>{% endif %}
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('deadlines_list') }}"
+             class="nav-link {% if 'deadline' in request.endpoint %}active{% endif %}">
+            <span class="nav-icon">⚔️</span><span class="nav-label">Quêtes</span>
+            {% if 'deadline' in request.endpoint %}<span class="nav-active-dot"></span>{% endif %}
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('courses_list') }}"
+             class="nav-link {% if 'course' in request.endpoint %}active{% endif %}">
+            <span class="nav-icon">📚</span><span class="nav-label">Cours</span>
+            {% if 'course' in request.endpoint %}<span class="nav-active-dot"></span>{% endif %}
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('ai_report') }}"
+             class="nav-link nav-link-ai {% if request.endpoint == 'ai_report' %}active{% endif %}">
+            <span class="nav-icon">🤖</span><span class="nav-label">IA Oracle</span>
+            {% if request.endpoint == 'ai_report' %}<span class="nav-active-dot"></span>{% endif %}
+          </a>
+        </li>
+      </ul>
+
+      <button class="btn-blocus" onclick="toggleBlocus()">
+        <span>🧘</span><span>Mode Blocus</span>
+      </button>
+
+    </div>
+    <div class="navbar-glow-line"></div>
+  </nav>
+
+  <!-- ========== FLASH MESSAGES ========== -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">
+            {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %}
+            <span>{{ message }}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- ========== MAIN CONTENT ========== -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="footer-inner">
+
+      <div class="footer-brand">
+        <div class="footer-title">DeadlineMap ICHEC</div>
+        <div class="footer-sub">Campus Montgomery · Campus Anjou</div>
+      </div>
+
+      <div class="footer-sig">
+        BUILT BY A STUDENT, FOR STUDENTS
+        <div class="footer-sig-sub">deadlinemap · ichec brussels · v1.0</div>
+      </div>
+
+      <div class="footer-right">
+        <div class="footer-quote" id="footerQuote"></div>
+        <div class="footer-made">
+          Fait avec du café et des deadlines · <a href="{{ url_for('ai_report') }}">Oracle IA</a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ========== MODE BLOCUS OVERLAY ========== -->
+  <div id="blocus-overlay" class="blocus-overlay hidden">
+    <div class="blocus-backdrop"></div>
+    <div class="blocus-content">
+      <div class="blocus-mascot-wrap">
+        <div class="blocus-mascot" id="bloculsMascot">🧑‍💻</div>
+        <div class="blocus-mascot-ring"></div>
+      </div>
+      <h1 class="blocus-title">MODE BLOCUS</h1>
+      <div class="blocus-divider"></div>
+      <p class="blocus-sub">TikTok est officiellement mort pour les 25 prochaines minutes.</p>
+      <p class="blocus-quote-text" id="blocus-quote">...</p>
+
+      <div class="blocus-timer-card">
+        <div class="timer-ring-wrap">
+          <svg viewBox="0 0 140 140" class="ring-svg">
+            <circle cx="70" cy="70" r="62" class="ring-track"/>
+            <circle cx="70" cy="70" r="62" class="ring-fill" id="timerRingFill"
+              stroke-dasharray="389.6"
+              stroke-dashoffset="0"/>
+          </svg>
+          <div class="timer-center-content">
+            <div class="timer-display" id="timer-display">25:00</div>
+            <div class="timer-sublabel">Pomodoro</div>
+          </div>
+        </div>
+        <div class="timer-controls">
+          <button onclick="startTimer()" class="btn-timer-start" id="timerStartBtn">▶ Démarrer</button>
+          <button onclick="resetTimer()" class="btn-timer-reset">↺ Reset</button>
+        </div>
+      </div>
+
+      <button onclick="toggleBlocus()" class="btn-exit-blocus">✕ Quitter le Mode Blocus</button>
+    </div>
+  </div>
+
+  <!-- ========== CONFETTI CANVAS ========== -->
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+  <!-- ========== TOAST CONTAINER ========== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

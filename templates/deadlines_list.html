@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Mes Deadlines — DeadlineMap ICHEC{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📋 Mes Deadlines</h1>
+    <p class="page-subtitle">{{ deadlines | length }} deadline(s) affichée(s)</p>
+  </div>
+  <a href="{{ url_for('deadline_new') }}" class="btn btn-primary btn-lg">➕ Nouvelle</a>
+</div>
+
+<!-- Filtres et Tri -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <span class="filter-label">Afficher :</span>
+    <a href="{{ url_for('deadlines_list', sort=sort_by, filter='active', course=selected_course) }}"
+       class="btn btn-filter {% if filter_by == 'active' %}active{% endif %}">⚡ Actives</a>
+    <a href="{{ url_for('deadlines_list', sort=sort_by, filter='all', course=selected_course) }}"
+       class="btn btn-filter {% if filter_by == 'all' %}active{% endif %}">📋 Toutes</a>
+    <a href="{{ url_for('deadlines_list', sort=sort_by, filter='overdue', course=selected_course) }}"
+       class="btn btn-filter {% if filter_by == 'overdue' %}active{% endif %}">🔥 En retard</a>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">Trier :</span>
+    <a href="{{ url_for('deadlines_list', sort='date', filter=filter_by, course=selected_course) }}"
+       class="btn btn-filter {% if sort_by == 'date' %}active{% endif %}">📅 Date</a>
+    <a href="{{ url_for('deadlines_list', sort='stress', filter=filter_by, course=selected_course) }}"
+       class="btn btn-filter {% if sort_by == 'stress' %}active{% endif %}">🧠 Stress</a>
+    <a href="{{ url_for('deadlines_list', sort='priority', filter=filter_by, course=selected_course) }}"
+       class="btn btn-filter {% if sort_by == 'priority' %}active{% endif %}">🎯 Priorité</a>
+  </div>
+
+  {% if all_courses %}
+  <div class="filter-group">
+    <span class="filter-label">Cours :</span>
+    <select class="select-filter" onchange="filterByCourse(this.value)">
+      <option value="">— Tous —</option>
+      {% for c in all_courses %}
+        <option value="{{ c.id }}" {% if selected_course == c.id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Tableau des Deadlines -->
+{% if deadlines %}
+  <div class="table-wrapper section-card">
+    <table class="deadline-table">
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>Cours</th>
+          <th>Date Limite</th>
+          <th>Jours</th>
+          <th>Priorité</th>
+          <th>Statut</th>
+          <th>Stress</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dl in deadlines %}
+          {% set course = courses.get(dl.course_id) %}
+          <tr class="deadline-row {{ dl.status.css_class() }} {% if dl.is_overdue() %}row-overdue{% endif %}">
+
+            <!-- Titre + description -->
+            <td class="td-title">
+              <div class="td-title-text">{{ dl.title }}</div>
+              {% if dl.description %}
+                <div class="td-desc">{{ dl.description[:60] }}{% if dl.description | length > 60 %}...{% endif %}</div>
+              {% endif %}
+              {% if dl.estimated_hours > 0 %}
+                <div class="td-hours">⏱️ ~{{ dl.estimated_hours }}h estimées</div>
+              {% endif %}
+            </td>
+
+            <!-- Cours avec couleur -->
+            <td>
+              {% if course %}
+                <span class="course-badge" style="background: {{ course.color }}">{{ course.name }}</span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Date -->
+            <td class="td-date">{{ dl.due_date | fr_date }}</td>
+
+            <!-- Jours restants -->
+            <td>
+              <span class="days-badge
+                {% if dl.days_remaining < 0 %}days-overdue
+                {% elif dl.days_remaining <= 1 %}days-critical
+                {% elif dl.days_remaining <= 7 %}days-warning
+                {% else %}days-ok{% endif %}">
+                {% if dl.days_remaining < 0 %}
+                  -{{ dl.days_remaining | abs }}j
+                {% elif dl.days_remaining == 0 %}
+                  Auj.
+                {% else %}
+                  {{ dl.days_remaining }}j
+                {% endif %}
+              </span>
+            </td>
+
+            <!-- Priorité -->
+            <td>
+              <span class="priority-badge {{ dl.priority.css_class() }}">
+                {{ dl.priority.label_fr() }}
+              </span>
+            </td>
+
+            <!-- Statut (sélecteur direct) -->
+            <td>
+              <select class="status-select {{ dl.status.css_class() }}"
+                      onchange="updateStatus('{{ dl.id }}', this.value, this)">
+                {% for s in ['A_FAIRE', 'EN_COURS', 'TERMINE', 'EN_RETARD'] %}
+                  <option value="{{ s }}" {% if dl.status.value == s %}selected{% endif %}>
+                    {% if s == 'A_FAIRE' %}📋 À faire
+                    {% elif s == 'EN_COURS' %}⚡ En cours
+                    {% elif s == 'TERMINE' %}✅ Terminé
+                    {% else %}🔥 En retard{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </td>
+
+            <!-- Jauge de stress -->
+            <td class="td-stress">
+              <div class="stress-pill">
+                <div class="stress-pill-fill"
+                     style="width: {{ dl.stress_score }}%; background: {{ dl.stress_score | stress_color }}">
+                </div>
+                <span class="stress-pill-text">{{ dl.stress_score }}</span>
+              </div>
+            </td>
+
+            <!-- Actions -->
+            <td class="td-actions">
+              <a href="{{ url_for('deadline_edit', deadline_id=dl.id) }}"
+                 class="btn btn-sm btn-edit" title="Modifier">✏️</a>
+              <form method="POST" action="{{ url_for('deadline_delete', deadline_id=dl.id) }}"
+                    onsubmit="return confirm('Supprimer \'{{ dl.title }}\' ? Cette action est irréversible !')">
+                <button type="submit" class="btn btn-sm btn-delete" title="Supprimer">🗑️</button>
+              </form>
+            </td>
+
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% else %}
+  <div class="empty-state section-card">
+    <div class="empty-emoji">🎉</div>
+    <h3 class="empty-title">Aucune deadline trouvée !</h3>
+    <p class="empty-sub">
+      {% if filter_by == 'overdue' %}Bonne nouvelle : aucun retard ! 🎉
+      {% elif filter_by == 'active' %}Tout est terminé ou rien n'a été encodé.
+      {% else %}Ton tableau de bord est vide. Encode tes deadlines Moodle !
+      {% endif %}
+    </p>
+    <a href="{{ url_for('deadline_new') }}" class="btn btn-primary">➕ Ajouter une deadline</a>
+  </div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filterByCourse(courseId) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('course', courseId);
+  window.location.href = url.toString();
+}
+
+function updateStatus(deadlineId, newStatus, selectEl) {
+  const formData = new FormData();
+  formData.append('status', newStatus);
+  fetch(`/deadlines/${deadlineId}/status`, { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        selectEl.className = 'status-select status-' + newStatus.toLowerCase().replace('_', '');
+        // Update stress display in same row
+        const row = selectEl.closest('tr');
+        const stressFill = row.querySelector('.stress-pill-fill');
+        const stressText = row.querySelector('.stress-pill-text');
+        if (stressFill) stressFill.style.width = data.stress_score + '%';
+        if (stressText) stressText.textContent = data.stress_score;
+        showToast('✅ Statut mis à jour !', 'success');
+      } else {
+        showToast('❌ Erreur lors de la mise à jour', 'error');
+      }
+    })
+    .catch(() => showToast('❌ Erreur réseau', 'error'));
+}
+</script>
+{% endblock %}

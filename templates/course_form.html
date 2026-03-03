@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Nouveau Cours — DeadlineMap ICHEC{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">➕ Ajouter un Cours</h1>
+    <p class="page-subtitle">Encode un cours de ton programme ICHEC</p>
+  </div>
+  <a href="{{ url_for('courses_list') }}" class="btn btn-secondary">← Retour</a>
+</div>
+
+<div class="form-wrapper section-card">
+  <form method="POST" class="deadline-form">
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="name">
+          📚 Nom du cours <span class="required">*</span>
+        </label>
+        <input type="text" id="name" name="name" class="form-input"
+               placeholder="Ex: Gestion Financière B2"
+               required maxlength="100" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="professor">👤 Professeur</label>
+        <input type="text" id="professor" name="professor" class="form-input"
+               placeholder="Ex: M. Vandenberghe" maxlength="100" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="credits">🎓 Crédits ECTS</label>
+        <input type="number" id="credits" name="credits" class="form-input"
+               value="5" min="1" max="30" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="color">🎨 Couleur</label>
+        <div class="color-picker-row">
+          <input type="color" id="color" name="color" class="form-color"
+                 value="#4ECDC4" />
+          <span class="form-hint">Couleur de la carte (pour le design cartoon)</span>
+        </div>
+        <div class="color-presets">
+          {% for col in ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#FF4757','#2ED573'] %}
+            <button type="button" class="color-preset-btn"
+                    style="background: {{ col }}"
+                    onclick="document.getElementById('color').value='{{ col }}'"></button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('courses_list') }}" class="btn btn-secondary">Annuler</a>
+      <button type="submit" class="btn btn-primary btn-lg">➕ Ajouter le cours</button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

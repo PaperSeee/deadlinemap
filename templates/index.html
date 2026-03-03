@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# ── Hero Section ──────────────────────────────────────────── #}
+<section class="hero-section">
+  <div class="hero-text">
+    <p class="page-eyebrow">ICHEC Brussels Management School</p>
+    <h1 class="page-title">
+      Bienvenue,<br>
+      <span class="text-cyan">Étudiant ICHEC</span>
+    </h1>
+    <p class="page-subtitle">
+      Tes deadlines, tes cours, ton stress — tout sous contrôle.<br>
+      {% if stats.overdue_count > 0 %}
+        <span class="text-pink">⚠ {{ stats.overdue_count }} deadline{{ 's' if stats.overdue_count > 1 }} en retard. Allez, courage.</span>
+      {% else %}
+        <span class="text-green">Aucun retard. Tu gères ! Maintiens le cap.</span>
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="mascot-bubble-wrap">
+    <div class="mascot-face" id="mascotFace"
+         data-stress="{{ stats.avg_stress | round(0) | int }}"
+         title="Clique pour une réaction">🧑‍💻</div>
+    <div class="speech-bubble" id="mascotBubble">Chargement...</div>
+  </div>
+</section>
+
+{# ── Stress HP Bar ─────────────────────────────────────────── #}
+{% if stats.total_active > 0 %}
+<div class="stress-bar-wrap mb-3 reveal">
+  <div class="stress-bar-header">
+    <span class="stress-bar-title">NIVEAU DE STRESS GLOBAL</span>
+    <span class="stress-bar-score" style="color: {{ stats.avg_stress | stress_color }}">
+      {{ stats.avg_stress | round(0) | int }}/100
+    </span>
+  </div>
+  <div class="stress-bar-track" id="hpBar">
+    {% for i in range(10) %}
+      <div class="stress-segment {% if (i + 1) * 10 <= stats.avg_stress %}filled{% endif %}
+                                 {% if (i + 1) * 10 <= stats.avg_stress and stats.avg_stress >= 70 %}critical{% endif %}">
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── Stats Grid ────────────────────────────────────────────── #}
+<div class="stats-grid mb-3">
+  <div class="stat-card reveal" style="animation-delay:.05s">
+    <div class="stat-icon-wrap c">📋</div>
+    <div class="stat-body">
+      <div class="stat-value text-cyan">{{ stats.total_active }}</div>
+      <div class="stat-label">Quêtes actives</div>
+    </div>
+  </div>
+  <div class="stat-card reveal" style="animation-delay:.1s">
+    <div class="stat-icon-wrap p">🔥</div>
+    <div class="stat-body">
+      <div class="stat-value text-pink">{{ stats.overdue_count }}</div>
+      <div class="stat-label">En retard</div>
+    </div>
+  </div>
+  <div class="stat-card reveal" style="animation-delay:.15s">
+    <div class="stat-icon-wrap s">⚡</div>
+    <div class="stat-body">
+      <div class="stat-value text-gold">{{ stats.upcoming_7days }}</div>
+      <div class="stat-label">Dans les 7 jours</div>
+    </div>
+  </div>
+  <div class="stat-card reveal" style="animation-delay:.2s">
+    <div class="stat-icon-wrap g">✅</div>
+    <div class="stat-body">
+      <div class="stat-value text-green">{{ stats.completed_count }}</div>
+      <div class="stat-label">Terminées</div>
+    </div>
+  </div>
+</div>
+
+{# ── Quest Board ───────────────────────────────────────────── #}
+<div class="section-header mt-3">
+  <h2 class="section-title">
+    <span class="section-title-icon">⚔️</span>
+    Tableau de Quêtes
+  </h2>
+  <a href="{{ url_for('new_deadline') }}" class="btn btn-primary btn-sm">+ Nouvelle quête</a>
+</div>
+
+{% if upcoming %}
+  <div class="grid-auto mb-3">
+    {% for d in upcoming %}
+      <div class="quest-card priority-{{ d.priority.name.lower() }}
+                  {% if d.is_overdue() %}boss-quest{% endif %} reveal"
+           style="animation-delay:{{ loop.index0 * 0.07 }}s">
+
+        <div class="quest-header">
+          <div class="quest-title">
+            {% if d.is_overdue() %}
+              <span title="BOSS: en retard" style="margin-right:.3rem">💀</span>
+            {% endif %}
+            {{ d.title }}
+          </div>
+          <div class="quest-badges">
+            <span class="badge badge-{{ d.priority.name.lower() }}">
+              {{ d.priority.label_fr() }}
+            </span>
+            {% if d.is_overdue() %}
+              <span class="badge badge-overdue">Retard</span>
+            {% elif d.days_remaining <= 3 %}
+              <span class="badge badge-soon">J-{{ d.days_remaining }}</span>
+            {% else %}
+              <span class="badge badge-ok">J-{{ d.days_remaining }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% set course = d.course_id and courses | selectattr('id', 'equalto', d.course_id) | first %}
+        {% if course %}
+          <span class="badge badge-cours" style="margin-bottom:.5rem">
+            <span class="course-swatch" style="background:{{ course.color }}"></span>
+            {{ course.name }}
+          </span>
+        {% endif %}
+
+        <div class="urgency-bar mt-1">
+          <div class="urgency-fill {% if d.stress_score >= 70 %}crit{% elif d.stress_score >= 40 %}high{% endif %}"
+               style="width: {{ [d.stress_score, 100] | min }}%"></div>
+        </div>
+
+        <div class="quest-meta">
+          <span class="quest-meta-item">📅 {{ d.due_date | fr_date }}</span>
+          <span class="quest-meta-item">⏱ ~{{ d.estimated_hours }}h</span>
+          <span class="badge badge-status-{{ d.status.name.lower() }}">
+            {{ d.status.name.replace('_', ' ') }}
+          </span>
+        </div>
+
+        <div class="quest-actions">
+          {% if d.status.name != 'TERMINE' %}
+            <button onclick="markDone('{{ d.id }}', this)"
+                    class="btn btn-success btn-sm">✓ Terminer</button>
+          {% endif %}
+          <a href="{{ url_for('edit_deadline', deadline_id=d.id) }}"
+             class="btn btn-secondary btn-sm">✏ Éditer</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="empty-state card reveal">
+    <div class="empty-state-icon">🏖</div>
+    <div class="empty-state-title">Zéro deadline en vue !</div>
+    <div class="empty-state-sub">Profites-en — ou bien ajoute quelque chose avant d'oublier.</div>
+    <div class="mt-2">
+      <a href="{{ url_for('new_deadline') }}" class="btn btn-primary">+ Ajouter une deadline</a>
+    </div>
+  </div>
+{% endif %}
+
+{# ── AI teaser strip ───────────────────────────────────────── #}
+{% if stats.total_active > 0 %}
+<a href="{{ url_for('ai_report') }}" class="card reveal" style="display:block; margin-top:1.5rem; text-decoration:none;">
+  <div class="card-body flex-center gap-2" style="padding:1.3rem 1.5rem">
+    <div style="font-size:2rem">🤖</div>
+    <div>
+      <div style="font-family:var(--font-head); font-size:.95rem; color:var(--purple)">Oracle IA — Analyse complète</div>
+      <div style="font-size:.8rem; color:var(--txt-dim)">Voir les alertes, prédictions de rush et recommandations personnalisées →</div>
+    </div>
+  </div>
+</a>
+{% endif %}
+
+{% endblock %}

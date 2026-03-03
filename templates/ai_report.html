@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Rapport IA — DeadlineMap ICHEC{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🤖 Rapport IA ICHEC</h1>
+    <p class="page-subtitle">Analyse prédictive de ta charge de travail — {{ today | fr_date }}</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">← Dashboard</a>
+</div>
+
+<!-- ===================================================
+     RÉSUMÉ IA (style "rapport")
+     =================================================== -->
+<div class="section-card ai-summary-card">
+  <div class="ai-header">
+    <div class="ai-robot">🤖</div>
+    <div class="ai-header-text">
+      <h2 class="ai-title">Analyse IA DeadlineMap</h2>
+      <p class="ai-subtitle">Moteur d'analyse prédictive — Système Expert ICHEC</p>
+    </div>
+    <div class="ai-score-bubble
+      {% if analysis.global_stress_score >= 75 %}score-critical
+      {% elif analysis.global_stress_score >= 50 %}score-high
+      {% elif analysis.global_stress_score >= 25 %}score-medium
+      {% else %}score-low{% endif %}">
+      <div class="ai-score-value">{{ analysis.global_stress_score }}</div>
+      <div class="ai-score-label">/100</div>
+    </div>
+  </div>
+
+  <!-- Jauge de stress globale -->
+  <div class="ai-global-stress">
+    <div class="stress-bar-lg-container">
+      <div class="stress-bar-lg"
+           style="width: {{ analysis.global_stress_score }}%;
+                  background: {{ analysis.global_stress_score | stress_color }}">
+      </div>
+    </div>
+    <div class="stress-label-lg">{{ analysis.stress_label }}</div>
+  </div>
+
+  <!-- Résumé textuel -->
+  <div class="ai-text-summary">
+    {% for line in analysis.advice_summary.split('\n') %}
+      {% if line.startswith('📊') %}<p class="ai-summary-title">{{ line }}</p>
+      {% elif line %}<p>{{ line }}</p>{% endif %}
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- ===================================================
+     ALERTES
+     =================================================== -->
+{% if analysis.alerts %}
+<section class="section-card">
+  <h2 class="section-title">🚨 Alertes Détectées</h2>
+  <div class="alerts-list">
+    {% for alert in analysis.alerts %}
+      <div class="alert-item alert-{{ alert.level }}">
+        <div class="alert-icon">{{ alert.icon }}</div>
+        <div class="alert-body">
+          <div class="alert-title">{{ alert.title }}</div>
+          <div class="alert-msg">{{ alert.message }}</div>
+        </div>
+        <div class="alert-level-badge alert-{{ alert.level }}">{{ alert.level.upper() }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ===================================================
+     DEADLINES LES PLUS URGENTES
+     =================================================== -->
+{% if analysis.most_urgent %}
+<section class="section-card">
+  <h2 class="section-title">🔥 Top {{ analysis.most_urgent | length }} Deadlines Urgentes</h2>
+  <div class="deadline-cards-grid">
+    {% for dl in analysis.most_urgent %}
+      <div class="deadline-card {{ dl.priority_css }}"
+           style="border-left-color: {{ dl.course_color }}">
+        <div class="dcard-header">
+          <span class="dcard-course" style="background: {{ dl.course_color }}">{{ dl.course_name }}</span>
+          <span class="dcard-priority {{ dl.priority_css }}">{{ dl.priority_label }}</span>
+        </div>
+        <h3 class="dcard-title">{{ dl.title }}</h3>
+        <div class="dcard-meta">
+          <span class="dcard-date">📅 {{ dl.due_date | fr_date }}</span>
+          <span class="dcard-days
+            {% if dl.days_remaining <= 0 %}days-overdue
+            {% elif dl.days_remaining <= 3 %}days-critical
+            {% elif dl.days_remaining <= 7 %}days-warning
+            {% else %}days-ok{% endif %}">
+            {% if dl.days_remaining < 0 %}🔥 {{ dl.days_remaining | abs }}j de retard
+            {% elif dl.days_remaining == 0 %}💀 AUJOURD'HUI
+            {% else %}⏳ {{ dl.days_remaining }}j
+            {% endif %}
+          </span>
+        </div>
+        <div class="stress-mini-bar">
+          <div class="stress-mini-fill"
+               style="width: {{ dl.stress_score }}%; background: {{ dl.stress_score | stress_color }}">
+          </div>
+        </div>
+        <p class="dcard-urgency">{{ dl.urgency_label }}</p>
+        <a href="{{ url_for('deadline_edit', deadline_id=dl.id) }}" class="btn btn-sm btn-edit">✏️ Éditer</a>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ===================================================
+     DISTRIBUTION HEBDOMADAIRE
+     =================================================== -->
+{% if analysis.weekly_load %}
+<section class="section-card">
+  <div class="section-header">
+    <h2 class="section-title">📅 Distribution Hebdomadaire</h2>
+    {% if analysis.rush_weeks %}
+      <span class="rush-badge">⚡ {{ analysis.rush_weeks | length }} semaine(s) de RUSH !</span>
+    {% endif %}
+  </div>
+
+  <div class="weekly-grid">
+    {% for week, count in analysis.weekly_load.items() %}
+      <div class="week-bar-item {% if week in analysis.rush_weeks %}week-rush{% endif %}">
+        <div class="week-bar-fill-wrap">
+          <div class="week-bar-fill"
+               style="height: {{ [count * 25, 100] | min }}%;
+                      background: {% if week in analysis.rush_weeks %}#FF4757{% else %}#4ECDC4{% endif %}">
+          </div>
+        </div>
+        <div class="week-bar-count">{{ count }}</div>
+        <div class="week-bar-label">{{ week }}</div>
+        {% if week in analysis.rush_weeks %}
+          <div class="week-rush-label">⚡ RUSH</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ===================================================
+     RECOMMANDATIONS IA
+     =================================================== -->
+{% if analysis.recommendations %}
+<section class="section-card">
+  <h2 class="section-title">💡 Recommandations Personnalisées</h2>
+  <div class="recommendations-list">
+    {% for rec in analysis.recommendations %}
+      <div class="rec-item">
+        <div class="rec-number">{{ loop.index }}</div>
+        <div class="rec-text">{{ rec }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ===================================================
+     MÉTRIQUES RÉSUMÉ
+     =================================================== -->
+<section class="stats-grid">
+  <div class="stat-card stat-card-blue">
+    <div class="stat-icon">📋</div>
+    <div class="stat-value">{{ analysis.most_urgent | length }}</div>
+    <div class="stat-label">Deadlines analysées</div>
+  </div>
+  <div class="stat-card stat-card-orange">
+    <div class="stat-icon">⚡</div>
+    <div class="stat-value">{{ analysis.rush_weeks | length }}</div>
+    <div class="stat-label">Semaines à risque</div>
+  </div>
+  <div class="stat-card stat-card-purple">
+    <div class="stat-icon">⏱️</div>
+    <div class="stat-value">{{ analysis.total_estimated_hours | round(0) | int }}h</div>
+    <div class="stat-label">Heures de travail</div>
+  </div>
+  <div class="stat-card stat-card-red">
+    <div class="stat-icon">🚨</div>
+    <div class="stat-value">{{ analysis.alerts | length }}</div>
+    <div class="stat-label">Alertes actives</div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Filtre Jinja2 "enumerate" simulé côté template — déjà géré par Jinja2 loop.index
+// Ajout d'une animation d'entrée pour les cartes
+document.querySelectorAll('.alert-item, .rec-item, .deadline-card').forEach((el, i) => {
+  el.style.animationDelay = (i * 0.08) + 's';
+  el.classList.add('fade-in-up');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}{% if deadline %}Modifier{% else %}Nouvelle{% endif %} Deadline — DeadlineMap ICHEC{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      {% if deadline %}✏️ Modifier la Deadline{% else %}➕ Nouvelle Deadline{% endif %}
+    </h1>
+    <p class="page-subtitle">
+      {% if deadline %}{{ deadline.title }}
+      {% else %}Encode ta prochaine galère académique ici 😅{% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('deadlines_list') }}" class="btn btn-secondary">← Retour</a>
+</div>
+
+<div class="form-wrapper section-card">
+  <form method="POST" class="deadline-form" novalidate>
+
+    <!-- Titre -->
+    <div class="form-group">
+      <label class="form-label" for="title">
+        📝 Titre de la deadline <span class="required">*</span>
+      </label>
+      <input type="text" id="title" name="title" class="form-input"
+             placeholder="Ex: Rapport analyse financière — Chapitre 3"
+             value="{{ deadline.title if deadline else '' }}"
+             required maxlength="200" />
+      <span class="form-hint">Sois précis — ton futur toi te remerciera.</span>
+    </div>
+
+    <!-- Cours et Date (côte à côte) -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="course_id">📚 Cours associé</label>
+        <select id="course_id" name="course_id" class="form-select">
+          <option value="">— Sélectionne un cours —</option>
+          {% for course in courses %}
+            <option value="{{ course.id }}"
+                    {% if deadline and deadline.course_id == course.id %}selected{% endif %}
+                    data-color="{{ course.color }}">
+              {{ course.name }} ({{ course.professor }})
+            </option>
+          {% endfor %}
+        </select>
+        <span class="form-hint">
+          <a href="{{ url_for('course_new') }}" class="link-inline">+ Ajouter un cours</a>
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="due_date">
+          📅 Date limite <span class="required">*</span>
+        </label>
+        <input type="date" id="due_date" name="due_date" class="form-input"
+               value="{{ deadline.due_date.isoformat() if deadline else '' }}"
+               min="{{ today.isoformat() }}"
+               required />
+        <span class="form-hint">Format : JJ/MM/AAAA (ta date de remise sur Moodle)</span>
+      </div>
+    </div>
+
+    <!-- Priorité, Statut, Heures estimées -->
+    <div class="form-row form-row-3">
+
+      <div class="form-group">
+        <label class="form-label" for="priority">🎯 Priorité</label>
+        <select id="priority" name="priority" class="form-select" onchange="updatePriorityStyle(this)">
+          {% for p_name, p_label, p_css in [
+            ('FAIBLE',   '🟢 Faible',   'priority-low'),
+            ('MOYEN',    '🟡 Moyen',    'priority-medium'),
+            ('ELEVE',    '🟠 Élevé',    'priority-high'),
+            ('CRITIQUE', '🔴 CRITIQUE', 'priority-critical'),
+          ] %}
+            <option value="{{ p_name }}"
+                    class="{{ p_css }}"
+                    {% if deadline and deadline.priority.name == p_name %}selected
+                    {% elif not deadline and p_name == 'MOYEN' %}selected{% endif %}>
+              {{ p_label }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% if deadline %}
+      <div class="form-group">
+        <label class="form-label" for="status">📌 Statut</label>
+        <select id="status" name="status" class="form-select">
+          <option value="A_FAIRE"   {% if deadline.status.value == 'A_FAIRE'   %}selected{% endif %}>📋 À faire</option>
+          <option value="EN_COURS"  {% if deadline.status.value == 'EN_COURS'  %}selected{% endif %}>⚡ En cours</option>
+          <option value="TERMINE"   {% if deadline.status.value == 'TERMINE'   %}selected{% endif %}>✅ Terminé</option>
+          <option value="EN_RETARD" {% if deadline.status.value == 'EN_RETARD' %}selected{% endif %}>🔥 En retard</option>
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label class="form-label" for="estimated_hours">⏱️ Heures estimées</label>
+        <input type="number" id="estimated_hours" name="estimated_hours" class="form-input"
+               placeholder="Ex: 8"
+               value="{{ deadline.estimated_hours if deadline else 0 }}"
+               min="0" max="200" step="0.5" />
+        <span class="form-hint">Sert à l'analyse IA. Sois honnête avec toi-même.</span>
+      </div>
+
+    </div>
+
+    <!-- Description -->
+    <div class="form-group">
+      <label class="form-label" for="description">📄 Notes / Description</label>
+      <textarea id="description" name="description" class="form-textarea"
+                placeholder="Ex: Chapitres 4 à 7, format APA, 15 pages min. Voir slides cours semaine 8."
+                rows="3">{{ deadline.description if deadline else '' }}</textarea>
+      <span class="form-hint">Ajoute les consignes importantes pour ne pas les oublier à 2h du matin.</span>
+    </div>
+
+    <!-- Aperçu du stress score (calculé en JS) -->
+    <div class="form-preview" id="stress-preview">
+      <div class="preview-label">🔮 Aperçu du score de stress estimé :</div>
+      <div class="preview-bar">
+        <div class="preview-fill" id="preview-fill" style="width: 0%"></div>
+      </div>
+      <div class="preview-score" id="preview-score">— Sélectionne une date pour calculer —</div>
+    </div>
+
+    <!-- Boutons -->
+    <div class="form-actions">
+      <a href="{{ url_for('deadlines_list') }}" class="btn btn-secondary">Annuler</a>
+      <button type="submit" class="btn btn-primary btn-lg">
+        {% if deadline %}💾 Sauvegarder{% else %}➕ Créer la Deadline{% endif %}
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Mise à jour de l'aperçu du stress en temps réel
+function updateStressPreview() {
+  const dueDateVal  = document.getElementById('due_date').value;
+  const priorityVal = document.getElementById('priority').value;
+
+  if (!dueDateVal) return;
+
+  const dueDate   = new Date(dueDateVal);
+  const today     = new Date();
+  today.setHours(0,0,0,0);
+  const days      = Math.round((dueDate - today) / (1000 * 60 * 60 * 24));
+
+  // Reproduit la logique Python de stress_score côté JS (pour aperçu)
+  let scoreTemps;
+  if (days < 0)      scoreTemps = 100;
+  else if (days===0) scoreTemps = 100;
+  else if (days<=1)  scoreTemps = 95;
+  else if (days<=3)  scoreTemps = 85;
+  else if (days<=7)  scoreTemps = 65;
+  else if (days<=14) scoreTemps = 40;
+  else if (days<=21) scoreTemps = 20;
+  else               scoreTemps = Math.max(0, 100 - days * 2);
+
+  const weights = { FAIBLE: 0.5, MOYEN: 0.75, ELEVE: 1.0, CRITIQUE: 1.25 };
+  const weight  = weights[priorityVal] || 1.0;
+  const score   = Math.min(100, Math.round(scoreTemps * weight));
+
+  const fill  = document.getElementById('preview-fill');
+  const label = document.getElementById('preview-score');
+  const color = score >= 80 ? '#FF4757' : score >= 60 ? '#FF6348' : score >= 40 ? '#FFA502' : '#2ED573';
+
+  fill.style.width      = score + '%';
+  fill.style.background = color;
+
+  let msg = '';
+  if (days < 0)         msg = '🔥 Déjà en retard !';
+  else if (score >= 85) msg = `😱 ${score}/100 — PANIQUE TOTALE`;
+  else if (score >= 65) msg = `⚡ ${score}/100 — Commence maintenant !`;
+  else if (score >= 40) msg = `⚠️ ${score}/100 — À surveiller`;
+  else if (score >= 20) msg = `😐 ${score}/100 — Still chill`;
+  else                  msg = `😎 ${score}/100 — Aucun stress (pour l'instant)`;
+
+  label.textContent = msg;
+}
+
+document.getElementById('due_date').addEventListener('change', updateStressPreview);
+document.getElementById('priority').addEventListener('change', updateStressPreview);
+
+// Init si édition d'une deadline existante
+{% if deadline %}
+updateStressPreview();
+{% endif %}
+</script>
+{% endblock %}
