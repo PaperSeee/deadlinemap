@@ -63,6 +63,10 @@ class DataManager:
 
     def _write_raw(self, data: dict):
         """Écrit un dictionnaire dans le fichier JSON (avec indentation)."""
+        # S'assure que le répertoire parent existe (nécessaire sur Vercel /tmp)
+        parent = os.path.dirname(self._filepath)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         with open(self._filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 

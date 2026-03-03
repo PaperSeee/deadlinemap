@@ -78,8 +78,11 @@ deadline_mgr  = DeadlineManager(DATA_FILE)
 course_mgr    = CourseManager(DATA_FILE)
 
 # Premier lancement : seed des cours ICHEC si aucun cours n'existe
-if not course_mgr.get_all():
-    course_mgr.seed_ichec_courses()
+try:
+    if not course_mgr.get_all():
+        course_mgr.seed_ichec_courses()
+except Exception as _seed_err:
+    print(f"[WARN] Seed impossible: {_seed_err}")
 
 
 # =============================================================

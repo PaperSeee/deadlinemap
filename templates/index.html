@@ -85,7 +85,7 @@
     <span class="section-title-icon">⚔️</span>
     Tableau de Quêtes
   </h2>
-  <a href="{{ url_for('new_deadline') }}" class="btn btn-primary btn-sm">+ Nouvelle quête</a>
+  <a href="{{ url_for('deadline_new') }}" class="btn btn-primary btn-sm">+ Nouvelle quête</a>
 </div>
 
 {% if upcoming %}
@@ -142,7 +142,7 @@
             <button onclick="markDone('{{ d.id }}', this)"
                     class="btn btn-success btn-sm">✓ Terminer</button>
           {% endif %}
-          <a href="{{ url_for('edit_deadline', deadline_id=d.id) }}"
+          <a href="{{ url_for('deadline_edit', deadline_id=d.id) }}"
              class="btn btn-secondary btn-sm">✏ Éditer</a>
         </div>
       </div>
@@ -155,7 +155,7 @@
     <div class="empty-state-title">Zéro deadline en vue !</div>
     <div class="empty-state-sub">Profites-en — ou bien ajoute quelque chose avant d'oublier.</div>
     <div class="mt-2">
-      <a href="{{ url_for('new_deadline') }}" class="btn btn-primary">+ Ajouter une deadline</a>
+      <a href="{{ url_for('deadline_new') }}" class="btn btn-primary">+ Ajouter une deadline</a>
     </div>
   </div>
 {% endif %}
