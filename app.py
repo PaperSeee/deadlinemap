@@ -136,6 +136,7 @@ def index():
         "index.html",
         stats       = stats,
         urgent      = urgent,
+        upcoming    = upcoming_7d,
         upcoming_7d = upcoming_7d,
         courses     = courses_dict,
         today       = date.today(),

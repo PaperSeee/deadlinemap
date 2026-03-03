@@ -116,7 +116,7 @@
           </div>
         </div>
 
-        {% set course = d.course_id and courses | selectattr('id', 'equalto', d.course_id) | first %}
+        {% set course = courses.get(d.course_id) if d.course_id else none %}
         {% if course %}
           <span class="badge badge-cours" style="margin-bottom:.5rem">
             <span class="course-swatch" style="background:{{ course.color }}"></span>

@@ -251,13 +251,17 @@ class DeadlineManager(DataManager):
         )
 
         return {
-            "total":        len(all_dl),
-            "active":       len(active),
-            "overdue":      len(overdue),
-            "upcoming_7d":  len(upcoming),
-            "completed":    len([dl for dl in all_dl if dl.status == Status.TERMINE]),
-            "avg_stress":   round(avg_stress, 1),
-            "max_stress":   max((dl.stress_score for dl in active), default=0),
+            "total":          len(all_dl),
+            "total_active":   len(active),
+            "active":         len(active),
+            "overdue_count":  len(overdue),
+            "overdue":        len(overdue),
+            "upcoming_7days": len(upcoming),
+            "upcoming_7d":    len(upcoming),
+            "completed_count":len([dl for dl in all_dl if dl.status == Status.TERMINE]),
+            "completed":      len([dl for dl in all_dl if dl.status == Status.TERMINE]),
+            "avg_stress":     round(avg_stress, 1),
+            "max_stress":     max((dl.stress_score for dl in active), default=0),
         }
 
 
