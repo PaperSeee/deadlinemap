@@ -342,18 +342,21 @@ class CourseManager(DataManager):
 
     def seed_ichec_courses(self):
         """
-        Pré-rempli avec les cours typiques de l'ICHEC Bachelor 2.
-        Appelé au premier lancement pour avoir des données de démonstration.
+        Cours réels du Bachelor Business Analyst (21BA) — ICHEC Brussels.
         """
         ichec_courses = [
-            Course("Gestion Financière",       "M. Vandenberghe",  6, "#FF6B6B"),
-            Course("Droit des Sociétés",        "Mme Lecomte",      4, "#4ECDC4"),
-            Course("Marketing Digital",         "M. Pirard",        5, "#45B7D1"),
-            Course("Économie Internationale",   "Mme Fontaine",     5, "#96CEB4"),
-            Course("Comptabilité Approfondie",  "M. Bastin",        6, "#FFEAA7"),
-            Course("Management Stratégique",    "Mme Delcourt",     4, "#DDA0DD"),
-            Course("TFE (Travail de Fin d'Études)", "Directeur TFE", 15, "#FF4757"),
-            Course("Statistiques Appliquées",   "M. Claes",         4, "#2ED573"),
+            Course("Stratégie digitale",                      "21BA010-A",  5, "#6366F1"),
+            Course("Gestion de projets informatiques",        "21BA020-A",  5, "#8B5CF6"),
+            Course("Ingénierie des exigences",                "21BA030-A",  5, "#EC4899"),
+            Course("Architecture Web",                        "21BA040-A",  6, "#14B8A6"),
+            Course("Structure de données",                    "21BA050-A",  5, "#F59E0B"),
+            Course("Conception et développement logiciel",    "21BA060-A",  6, "#10B981"),
+            Course("Mathématiques pour Business Analysts",    "21BA065-A",  5, "#F97316"),
+            Course("Nederlands voor Business Analyst 1",      "21BA080-A",  4, "#3B82F6"),
+            Course("Projet en entreprise",                    "21BA092",   16, "#EF4444"),
+            Course("Rapport de stage M1",                     "21BA095-A",  3, "#84CC16"),
+            Course("Introduction to Strategic Management",    "21PBA102-A", 3, "#06B6D4"),
+            Course("Programmation",                           "21PBA12-A",  0, "#A78BFA"),
         ]
         for course in ichec_courses:
             self.add(course)
