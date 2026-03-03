@@ -109,22 +109,31 @@ class WorkloadAnalysis:
 
 class AIAdvisor:
     """
-    Moteur d'analyse IA de la charge de travail étudiante.
+    Moteur d'analyse IA — alias : SHINIGAMI (System for Heuristic INtelligence
+    Guiding Academic Management And Intelligent assessment).
 
     SIMULATION IA (Expert System / Rule-Based AI) :
     ─────────────────────────────────────────────────
-    Cette classe implémente un système expert déterministe qui :
+    Cette classe implémente un système expert déterministe (Symbolic AI) qui :
     1. Analyse les patterns de distribution des deadlines dans le temps.
-    2. Détecte les clusters de surcharge (plusieurs deadlines proches).
+    2. Détecte les clusters de surcharge (semaines de rush).
     3. Estime la charge horaire totale et hebdomadaire.
-    4. Applique des règles de priorité pour générer des recommandations.
-    5. Produit des messages personnalisés au contexte ICHEC.
+    4. Applique des règles de priorité (R1–R5) pour générer des alertes.
+    5. Produit des recommandations contextualisées au cadre ICHEC.
 
-    C'est une approche de "Symbolic AI" (IA symbolique) par opposition
-    aux modèles de ML/DL. Elle est:
-    - Explicable (on peut justifier chaque décision)
-    - Reproductible (résultats déterministes)
-    - Adaptée à un contexte académique où l'interprétabilité compte
+    POURQUOI "EXPERT SYSTEM" ET PAS ML/DL ?
+    ─────────────────────────────────────────
+    Un système expert est un type d'IA symbolique basé sur des règles explicites.
+    C'est académiquement défendable car :
+    - Explicable (on peut justifier chaque décision règle par règle)
+    - Reproductible (résultats déterministes, pas de modèle stochastique)
+    - Sans données d'entraînement (aucun dataset requis)
+    Si une clé API (OpenAI/Mistral) était disponible, on remplacerait
+    _generate_advice_summary() par un vrai appel LLM sans toucher au reste.
+    C'est le principe Ouvert/Fermé (OCP) du SOLID.
+
+    Référence Death Note : comme L Lawliet, SHINIGAMI analyse les patterns
+    invisibles et prédit les issues avec un taux de précision calculé. 🍬
 
     Args:
         deadlines : Liste des deadlines actives à analyser.
@@ -517,12 +526,12 @@ class AIAdvisor:
         )
 
         return (
-            f"📊 **Analyse IA DeadlineMap — {today_str}**\n\n"
+            f"📊 **Analyse SHINIGAMI — {today_str}**\n\n"
             f"J'ai analysé tes {nb_active} deadline(s) active(s). "
             f"{context_msg} "
             f"Score de stress global : **{global_stress}/100**. "
             f"\n\n{rush_msg}"
             f"{hours_msg}"
             f"\n\nConsulte les recommandations ci-dessous pour optimiser ton planning. "
-            f"— *DeadlineMap IA, service de conseil académique virtuel de l'ICHEC* 🎓"
+            f"— *SHINIGAMI · Système Expert IA de DeadlineMap ICHEC* 🎓"
         )

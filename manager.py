@@ -26,6 +26,7 @@ PATTERN APPLIQUÉ : Repository Pattern
 
 import json
 import os
+from abc import ABC, abstractmethod
 from typing import List, Optional, Dict
 from datetime import date, timedelta
 
@@ -36,12 +37,26 @@ from models import Deadline, Course, Priority, Status
 #  CLASSE DE BASE : DataManager (Persistance JSON)
 # =============================================================
 
-class DataManager:
+class DataManager(ABC):
     """
-    Gère la persistance des données dans un fichier JSON.
+    CLASSE DE BASE ABSTRAITE pour la persistance des données (Pattern Repository).
 
-    RÔLE : Abstraire l'accès aux données (lecture/écriture fichier).
-    HÉRITAGE : DeadlineManager et CourseManager héritent de cette classe.
+    POURQUOI ABSTRAITE ?
+    ────────────────────
+    DataManager définit le CONTRAT que toute couche de persistance
+    doit respecter : savoir charger (_load_all_raw) et sauvegarder
+    (_save_all_raw) les données.
+    Si demain on passe d'un JSON à SQLite ou PostgreSQL, il suffit
+    de créer une nouvelle sous-classe sans toucher au reste du code.
+    C'est le Principe Ouvert/Fermé (OCP) du SOLID.
+
+    Méthodes abstraites (CONTRAT à implémenter) :
+        _load_all_raw()   : Charge le dict brut depuis la source
+        _save_all_raw()   : Persiste le dict dans la source
+
+    Méthodes concrètes (implémentation partagée) :
+        _read_raw()       : Lit le JSON du disque
+        _write_raw()      : Écrit le JSON sur le disque
 
     Args:
         filepath : Chemin vers le fichier JSON de stockage.
@@ -54,7 +69,7 @@ class DataManager:
             self._write_raw({})
 
     def _read_raw(self) -> dict:
-        """Lit le contenu brut du fichier JSON."""
+        """Lit le contenu brut du fichier JSON (méthode concrète partagée)."""
         try:
             with open(self._filepath, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -62,13 +77,28 @@ class DataManager:
             return {}
 
     def _write_raw(self, data: dict):
-        """Écrit un dictionnaire dans le fichier JSON (avec indentation)."""
+        """Ecrit un dictionnaire dans le fichier JSON (méthode concrète partagée)."""
         # S'assure que le répertoire parent existe (nécessaire sur Vercel /tmp)
         parent = os.path.dirname(self._filepath)
         if parent:
             os.makedirs(parent, exist_ok=True)
         with open(self._filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
+    @abstractmethod
+    def _load_all_raw(self) -> dict:
+        """
+        Méthode ABSTRAITE : charger le dictionnaire brut {id: data_dict}.
+        Chaque sous-classe (DeadlineManager, CourseManager) implémente
+        en lisant la bonne clé du JSON (ex: 'deadlines' ou 'courses').
+        """
+
+    @abstractmethod
+    def _save_all_raw(self, data: dict):
+        """
+        Méthode ABSTRAITE : persister le dictionnaire brut.
+        Garantit que toute sous-classe sait écrire ses données.
+        """
 
 
 # =============================================================
@@ -88,24 +118,42 @@ class DeadlineManager(DataManager):
     STORAGE_KEY = "deadlines"
 
     def __init__(self, filepath: str):
-        super().__init__(filepath)   # Appel constructeur parent
+        super().__init__(filepath)   # Appel constructeur parent (DataManager)
         # S'assure que la clé "deadlines" existe dans le JSON
         raw = self._read_raw()
         if self.STORAGE_KEY not in raw:
             raw[self.STORAGE_KEY] = {}
             self._write_raw(raw)
 
-    # ---------- Méthodes privées de persistance ----------
+    # ---------- Implémentation du contrat abstrait de DataManager ----------
 
     def _load_all_raw(self) -> dict:
-        """Charge le dictionnaire brut {id: dict} depuis le JSON."""
+        """
+        Implémentation de la méthode abstraite : charge les deadlines
+        depuis la clé 'deadlines' du JSON.
+        """
         return self._read_raw().get(self.STORAGE_KEY, {})
 
     def _save_all_raw(self, deadlines_dict: dict):
-        """Sauvegarde le dictionnaire complet dans le JSON."""
+        """
+        Implémentation de la méthode abstraite : sauvegarde le dict
+        des deadlines dans la clé 'deadlines' du JSON.
+        """
         raw = self._read_raw()
         raw[self.STORAGE_KEY] = deadlines_dict
         self._write_raw(raw)
+
+    def __len__(self) -> int:
+        """
+        Définit len(deadline_manager) → nombre total de deadlines stockées.
+        Méthode spéciale Python (dunder) : permet d'utiliser len() directement
+        sur l'objet. Exemple : if len(deadline_mgr) == 0: seed()
+        """
+        return len(self._load_all_raw())
+
+    def __repr__(self) -> str:
+        """Représentation développeur du manager."""
+        return f"<DeadlineManager file='{self._filepath}' count={len(self)}>"
 
     # ---------- CRUD Public ----------
 
@@ -290,13 +338,33 @@ class CourseManager(DataManager):
             raw[self.STORAGE_KEY] = {}
             self._write_raw(raw)
 
+    # ---------- Implémentation du contrat abstrait de DataManager ----------
+
     def _load_all_raw(self) -> dict:
+        """
+        Implémentation de la méthode abstraite : charge les cours
+        depuis la clé 'courses' du JSON.
+        """
         return self._read_raw().get(self.STORAGE_KEY, {})
 
     def _save_all_raw(self, courses_dict: dict):
+        """
+        Implémentation de la méthode abstraite : persiste les cours.
+        """
         raw = self._read_raw()
         raw[self.STORAGE_KEY] = courses_dict
         self._write_raw(raw)
+
+    def __len__(self) -> int:
+        """
+        Définit len(course_manager) → nombre de cours enregistrés.
+        Méthode dunder (spéciale Python) : permet d'utiliser len() directement.
+        """
+        return len(self._load_all_raw())
+
+    def __repr__(self) -> str:
+        return f"<CourseManager file='{self._filepath}' count={len(self)}>"
+
 
     def get_all(self) -> List[Course]:
         """Retourne tous les cours triés par nom."""

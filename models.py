@@ -36,6 +36,7 @@ PRINCIPES POO APPLIQUÉS :
 
 import uuid
 import json
+from abc import ABC, abstractmethod
 from datetime import datetime, date
 from enum import Enum
 from typing import Optional
@@ -120,13 +121,20 @@ class Status(Enum):
 #  CLASSE DE BASE : Task (Abstraction générique)
 # =============================================================
 
-class Task:
+class Task(ABC):
     """
-    Classe de base représentant une tâche générique.
+    Classe de BASE ABSTRAITE (Abstract Base Class — ABC) représentant une tâche générique.
 
     RÔLE : Factoriser les attributs et méthodes communs à toutes
     les tâches (id unique, titre, description, timestamp de création).
-    Toute entité "à faire" dans le système hérite de cette classe.
+    Toute entité 'à faire' dans le système hérite de cette classe.
+
+    POURQUOI ABSTRAITE ?
+    ─────────────────────
+    On ne peut PAS instancier Task directement (Task() → TypeError).
+    Cela force les sous-classes (Deadline) à implémenter to_dict().
+    C'est le principe du Contrat Abstrait (Design by Contract).
+    Référence : Patron de conception Template Method (GoF).
 
     Attributs privés (encapsulation) :
         _id          : Identifiant unique (UUID)
@@ -188,10 +196,33 @@ class Task:
     def updated_at(self) -> datetime:
         return self._updated_at
 
+    def __eq__(self, other: object) -> bool:
+        """
+        Opérateur d'égalité structurelle entre deux tâches.
+        Deux tâches sont identiques si et seulement si leurs IDs sont égaux.
+        Permet d'utiliser 'deadline_a == deadline_b' proprement.
+        """
+        if not isinstance(other, Task):
+            return NotImplemented
+        return self._id == other._id
+
+    def __hash__(self) -> int:
+        """
+        Hash basé sur l'ID unique (immuable).
+        Nécessaire pour utiliser les objets Task dans des sets ou
+        comme clés de dictionnaire (ex: {deadline: score}).
+        """
+        return hash(self._id)
+
+    @abstractmethod
     def to_dict(self) -> dict:
         """
-        Sérialise l'objet en dictionnaire (pour la persistance JSON).
-        Méthode destinée à être surchargée (polymorphisme) dans les sous-classes.
+        Méthode ABSTRAITE : chaque sous-classe DOIT implémenter sa propre
+        sérialisation en dictionnaire (contrat imposé par ABC).
+        Principe du Polymorphisme + Design by Contract.
+
+        Sans @abstractmethod, une sous-classe oubliant to_dict() serait
+        silencieusement incorrecte. Avec ABC → TypeError à l'instanciation.
         """
         return {
             "id":          self._id,
