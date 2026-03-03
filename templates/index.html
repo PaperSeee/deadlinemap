@@ -53,7 +53,7 @@
     <div class="stat-icon-wrap c">📋</div>
     <div class="stat-body">
       <div class="stat-value text-cyan">{{ stats.total_active }}</div>
-      <div class="stat-label">Quêtes actives</div>
+      <div class="stat-label">Deadlines actives</div>
     </div>
   </div>
   <div class="stat-card reveal" style="animation-delay:.1s">
@@ -82,10 +82,10 @@
 {# ── Quest Board ───────────────────────────────────────────── #}
 <div class="section-header mt-3">
   <h2 class="section-title">
-    <span class="section-title-icon">⚔️</span>
-    Tableau de Quêtes
+    <span class="section-title-icon">📋</span>
+    Mes Deadlines
   </h2>
-  <a href="{{ url_for('deadline_new') }}" class="btn btn-primary btn-sm">+ Nouvelle quête</a>
+  <a href="{{ url_for('deadline_new') }}" class="btn btn-primary btn-sm">+ Nouvelle deadline</a>
 </div>
 
 {% if upcoming %}
@@ -98,7 +98,7 @@
         <div class="quest-header">
           <div class="quest-title">
             {% if d.is_overdue() %}
-              <span title="BOSS: en retard" style="margin-right:.3rem">💀</span>
+              <span title="En retard !" style="margin-right:.3rem">🔥</span>
             {% endif %}
             {{ d.title }}
           </div>
@@ -162,13 +162,14 @@
 
 {# ── AI teaser strip ───────────────────────────────────────── #}
 {% if stats.total_active > 0 %}
-<a href="{{ url_for('ai_report') }}" class="card reveal" style="display:block; margin-top:1.5rem; text-decoration:none;">
-  <div class="card-body flex-center gap-2" style="padding:1.3rem 1.5rem">
-    <div style="font-size:2rem">🤖</div>
-    <div>
-      <div style="font-family:var(--font-head); font-size:.95rem; color:var(--purple)">Oracle IA — Analyse complète</div>
-      <div style="font-size:.8rem; color:var(--txt-dim)">Voir les alertes, prédictions de rush et recommandations personnalisées →</div>
+<a href="{{ url_for('ai_report') }}" class="card reveal" style="display:block; margin-top:1.25rem; text-decoration:none;">
+  <div class="card-body" style="display:flex;align-items:center;gap:1rem;padding:1.1rem 1.4rem">
+    <div style="width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--violet));display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">🤖</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--font-head);font-size:.92rem;font-weight:700;color:var(--txt);margin-bottom:.15rem">Rapport IA — Analyse de ta charge</div>
+      <div style="font-size:.78rem;color:var(--txt-dim)">Alertes, prédictions de rush et recommandations personnalisées →</div>
     </div>
+    <div style="font-size:.8rem;color:var(--primary);font-weight:600;flex-shrink:0">Voir →</div>
   </div>
 </a>
 {% endif %}

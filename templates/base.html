@@ -157,7 +157,69 @@
   <!-- ========== TOAST CONTAINER ========== -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <!-- ========== DEATH NOTE — L ========== -->
+  <div id="l-corner" title="L Lawliet — DeadlineMap Investigator">
+    <div id="l-bubble">
+      <span id="l-text">Je pense à <span class="l-prob">94%</span> que tu as une deadline oubliée...</span>
+    </div>
+    <div id="l-figure" onclick="lSpeak()" title="Clique sur L">
+      <div class="l-hair"></div>
+      <div class="l-head">
+        <div class="l-eyes">
+          <div class="l-eye"></div>
+          <div class="l-eye"></div>
+        </div>
+        <div class="l-under">
+          <div class="l-shadow"></div>
+          <div class="l-shadow"></div>
+        </div>
+      </div>
+      <div class="l-body"></div>
+      <div class="l-arms">
+        <div class="l-arm"></div>
+        <div class="l-arm"></div>
+      </div>
+      <div class="l-legs">
+        <div class="l-leg"></div>
+        <div class="l-leg"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+  // ── L Lawliet corner character ──
+  const lPhrases = [
+    `Je pense à <span class="l-prob">94%</span> que tu as une deadline oubliée...`,
+    `Probabilité de procrastination : <span class="l-prob">87%</span>`,
+    `Kira encode ses deadlines. Toi aussi.`,
+    `<span class="l-prob">Je suis L.</span> Et tes deadlines m'inquiètent.`,
+    `Un étudiant intelligent finit ses TPs à l'avance. <span class="l-prob">Probablement.</span>`,
+    `Une seule chose me bat. Les deadlines. Pas toi.`,
+    `Sucre + café + révisions = <span class="l-prob">L Strategy™</span>`,
+    `Probabilité de rush nocturne : <span class="l-prob">${Math.floor(Math.random()*30)+65}%</span>`,
+    `Je suis à <span class="l-prob">99%</span> certain que Moodle a une surprise pour toi.`,
+    `Mode blocus recommandé. <span class="l-prob">Immédiatement.</span>`,
+  ];
+  let lIdx = 0;
+  function lSpeak() {
+    lIdx = (lIdx + 1) % lPhrases.length;
+    document.getElementById('l-text').innerHTML = lPhrases[lIdx];
+    const b = document.getElementById('l-bubble');
+    b.classList.remove('hidden');
+    b.style.animation = 'none';
+    requestAnimationFrame(() => { b.style.animation = ''; });
+  }
+  // Auto-rotate every 12s
+  setInterval(lSpeak, 12000);
+  // Hide bubble after 8s of no interaction
+  let lHideT;
+  document.getElementById('l-figure').addEventListener('click', () => {
+    clearTimeout(lHideT);
+    document.getElementById('l-bubble').classList.remove('hidden');
+    lHideT = setTimeout(() => document.getElementById('l-bubble').classList.add('hidden'), 8000);
+  });
+  </script>
   {% block extra_scripts %}{% endblock %}
 
 </body>
