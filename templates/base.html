@@ -157,68 +157,297 @@
   <!-- ========== TOAST CONTAINER ========== -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- ========== DEATH NOTE — L ========== -->
-  <div id="l-corner" title="L Lawliet — DeadlineMap Investigator">
-    <div id="l-bubble">
-      <span id="l-text">Je pense à <span class="l-prob">94%</span> que tu as une deadline oubliée...</span>
-    </div>
-    <div id="l-figure" onclick="lSpeak()" title="Clique sur L">
-      <div class="l-hair"></div>
-      <div class="l-head">
-        <div class="l-eyes">
-          <div class="l-eye"></div>
-          <div class="l-eye"></div>
+  <!-- ========== DEATH NOTE — L CHATBOT ========== -->
+  <div id="l-corner">
+
+    <!-- Chat panel (hidden by default) -->
+    <div id="l-chat-panel" class="hidden">
+      <div id="l-chat-header" onclick="lToggleChat()">
+        <span class="l-chat-avatar">🕵</span>
+        <div class="l-chat-name">
+          <strong>L Lawliet</strong>
+          <span>Investigateur — ICHEC</span>
         </div>
-        <div class="l-under">
-          <div class="l-shadow"></div>
-          <div class="l-shadow"></div>
+        <button class="l-chat-close" onclick="lToggleChat()" aria-label="Fermer">✕</button>
+      </div>
+      <div id="l-chat-messages"></div>
+      <div id="l-typing">
+        <span class="lmsg-avatar">L</span>
+        <div class="l-typing-dots">
+          <span></span><span></span><span></span>
         </div>
       </div>
-      <div class="l-body"></div>
-      <div class="l-arms">
-        <div class="l-arm"></div>
-        <div class="l-arm"></div>
-      </div>
-      <div class="l-legs">
-        <div class="l-leg"></div>
-        <div class="l-leg"></div>
+      <div id="l-chat-input-bar">
+        <input id="l-chat-input" type="text"
+               placeholder="Écris à L…" maxlength="220"
+               autocomplete="off" />
+        <button id="l-chat-send" aria-label="Envoyer">↑</button>
       </div>
     </div>
-  </div>
+
+    <!-- L figure (toggle button) -->
+    <div id="l-figure-wrap" onclick="lToggleChat()" title="Parler à L Lawliet">
+      <span id="l-hint">Parler à L</span>
+      <div id="l-figure">
+        <div class="l-hair"></div>
+        <div class="l-head">
+          <div class="l-eyes">
+            <div class="l-eye"></div>
+            <div class="l-eye"></div>
+          </div>
+          <div class="l-under">
+            <div class="l-shadow"></div>
+            <div class="l-shadow"></div>
+          </div>
+        </div>
+        <div class="l-body"></div>
+        <div class="l-arms">
+          <div class="l-arm"></div>
+          <div class="l-arm"></div>
+        </div>
+        <div class="l-legs">
+          <div class="l-leg"></div>
+          <div class="l-leg"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #l-corner -->
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   <script>
-  // ── L Lawliet corner character ──
-  const lPhrases = [
-    `Je pense à <span class="l-prob">94%</span> que tu as une deadline oubliée...`,
-    `Probabilité de procrastination : <span class="l-prob">87%</span>`,
-    `Kira encode ses deadlines. Toi aussi.`,
-    `<span class="l-prob">Je suis L.</span> Et tes deadlines m'inquiètent.`,
-    `Un étudiant intelligent finit ses TPs à l'avance. <span class="l-prob">Probablement.</span>`,
-    `Une seule chose me bat. Les deadlines. Pas toi.`,
-    `Sucre + café + révisions = <span class="l-prob">L Strategy™</span>`,
-    `Probabilité de rush nocturne : <span class="l-prob">${Math.floor(Math.random()*30)+65}%</span>`,
-    `Je suis à <span class="l-prob">99%</span> certain que Moodle a une surprise pour toi.`,
-    `Mode blocus recommandé. <span class="l-prob">Immédiatement.</span>`,
-  ];
-  let lIdx = 0;
-  function lSpeak() {
-    lIdx = (lIdx + 1) % lPhrases.length;
-    document.getElementById('l-text').innerHTML = lPhrases[lIdx];
-    const b = document.getElementById('l-bubble');
-    b.classList.remove('hidden');
-    b.style.animation = 'none';
-    requestAnimationFrame(() => { b.style.animation = ''; });
-  }
-  // Auto-rotate every 12s
-  setInterval(lSpeak, 12000);
-  // Hide bubble after 8s of no interaction
-  let lHideT;
-  document.getElementById('l-figure').addEventListener('click', () => {
-    clearTimeout(lHideT);
-    document.getElementById('l-bubble').classList.remove('hidden');
-    lHideT = setTimeout(() => document.getElementById('l-bubble').classList.add('hidden'), 8000);
-  });
+  /* ══════════════════════════════════════════════
+     L Lawliet — Death Note Chatbot
+     ══════════════════════════════════════════════ */
+
+  (function () {
+    'use strict';
+
+    /* ── State ─────────────────────────────── */
+    let chatOpen = false;
+    let typingTimer = null;
+    const greetingDone = { v: false };
+
+    /* ── DOM refs ──────────────────────────── */
+    const panel   = document.getElementById('l-chat-panel');
+    const msgs    = document.getElementById('l-chat-messages');
+    const typing  = document.getElementById('l-typing');
+    const input   = document.getElementById('l-chat-input');
+    const sendBtn = document.getElementById('l-chat-send');
+
+    /* ── Helpers ───────────────────────────── */
+    function prob(lo, hi) {
+      return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+    }
+    function now() {
+      return new Date().toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function appendMsg(who, html) {
+      /* who: 'l' | 'user' */
+      const wrap = document.createElement('div');
+      wrap.className = 'lmsg ' + (who === 'user' ? 'user' : '');
+      const av = document.createElement('span');
+      av.className = 'lmsg-avatar';
+      av.textContent = who === 'user' ? 'K' : 'L';
+      const bub = document.createElement('div');
+      bub.className = 'lmsg-bubble';
+      bub.innerHTML = html;
+      const t = document.createElement('div');
+      t.className = 'lmsg-time';
+      t.textContent = now();
+      if (who === 'user') {
+        wrap.appendChild(bub); wrap.appendChild(av);
+      } else {
+        wrap.appendChild(av); wrap.appendChild(bub);
+      }
+      bub.appendChild(t);
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function showTyping() {
+      typing.classList.add('visible');
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+    function hideTyping() { typing.classList.remove('visible'); }
+
+    function lSay(html, delay) {
+      showTyping();
+      typingTimer = setTimeout(() => {
+        hideTyping();
+        appendMsg('l', html);
+      }, delay || 1100 + Math.random() * 600);
+    }
+
+    /* ── Knowledge base (keyword => response) ─── */
+    const KB = [
+      {
+        keys: /\b(bonjour|salut|hello|hi|coucou|hey)\b/i,
+        reply: () => `Bonjour. Je t'attendais — probabilité <span class="l-prob">${prob(89,97)}%</span>. Je suis L. Ryuzaki si tu préfères. <em>...Il grignotait une fraise en disant ça.</em>`
+      },
+      {
+        keys: /\b(qui es.?tu|who are you|c.?est quoi|présente.?toi|your name)\b/i,
+        reply: () => `Je suis L. L Lawliet. Le meilleur détective du monde. <span class="l-prob">Troisième rang mondial</span> — mais les deux autres sont aussi moi. Je résous des affaires. Et apparemment, je t'aide avec tes deadlines. <em>*mange un bonbon*</em>`
+      },
+      {
+        keys: /\b(stress|stressé|panique|anxieux|j.?en peux plus|overwhelm)\b/i,
+        reply: () => `Probabilité de stress contre-productif : <span class="l-prob">${prob(82,94)}%</span>. L'affaire Kira m'a appris une chose — le stress est de l'énergie mal dirigée. Liste tes tâches. Une par une. Commence par la plus petite. <em>Near arrangeait ses figurines dans ces moments-là.</em>`
+      },
+      {
+        keys: /\b(deadline|en retard|retard|délai|rendre|rendu)\b/i,
+        reply: () => `<span class="l-prob">Alerte rouge.</span> L'affaire deadline est plus sérieuse que l'affaire Kira. Ryuk lui-même s'ennuierait de te regarder rater tes remises. Combien de temps reste-t-il ? <em>*pose sa tasse de thé sucré*</em>`
+      },
+      {
+        keys: /\b(procrastin|plus tard|remettre|flemme|paresse|rien faire)\b/i,
+        reply: () => `Kira n'a <em>jamais</em> procrastiné. Réfléchis-y. Chaque minute perdue est du terrain cédé. Si Light Yagami avait ton planning, il aurait déjà tout rendu… et pris le monde en plus. <span class="l-prob">Tu peux faire mieux.</span>`
+      },
+      {
+        keys: /\b(cours|classe|prof|lecture|tp |td |tp$|amphis|cm )\b/i,
+        reply: () => `<span class="l-prob">Analyse en cours…</span> Near résolvait des puzzles entre les cours. Mello lisait du chocolat et des notes en même temps. Moi je suçais un sucre. La méthode importe peu — <em>la constance</em> fait la différence.`
+      },
+      {
+        keys: /\b(exam|examen|test|partiel|éval|interrogation)\b/i,
+        reply: () => `Probabilité de réussite sans révision active : <span class="l-prob">${prob(18,31)}%</span>. Probabilité avec méthode espacée : <span class="l-prob">${prob(74,89)}%</span>. Les chiffres parlent. Watari aurait déjà préparé un plan de révision. Veux-tu que je t'aide ?`
+      },
+      {
+        keys: /\b(aide|help|aidez|conseil|que faire|comment|aider)\b/i,
+        reply: () => `Je t'écoute. Sur quelle affaire travailles-tu ? Deadline, exam, TFE, organisation ? <span class="l-prob">Probabilité de résolution : ${prob(80,96)}%</span> si tu me donnes les détails. <em>*croise les doigts*</em>`
+      },
+      {
+        keys: /\b(café|fatigue|dormir|sommeil|épuisé|nuit blanche|tired)\b/i,
+        reply: () => `Je dors <span class="l-prob">4 heures</span> par nuit depuis des années. Ce n'est pas recommandé — mais si tu dois tenir, un café noir sans sucre fonctionne pendant ${prob(90,140)} minutes. Ensuite il te faut <em>20 min de vrai repos</em>. Ryuk reste éveillé des siècles, mais il n'a pas de deadlines.`
+      },
+      {
+        keys: /\b(sucre|gateau|gâteau|fraise|bonbon|chocolat|manger|faim)\b/i,
+        reply: () => `<span class="l-prob">Maintenant tu parles ma langue.</span> *prend une fraise* Le sucre représente <span class="l-prob">40%</span> de ma capacité cérébrale selon mes propres calculs. Mello avait le chocolat. Near avait ses chips. Chacun son carburant. Quel est le tien ?`
+      },
+      {
+        keys: /\b(ryuk|shinigami|dieu de la mort|pomme|apple)\b/i,
+        reply: () => `Ryuk mangerait tes pommes ET ta deadline sans aucun remords. <em>*regarde dans le vague*</em> Un shinigami ne connaît pas le stress académique — mais moi oui. Et je te dis : <span class="l-prob">commence maintenant</span>.`
+      },
+      {
+        keys: /\b(kira|light yagami|light)\b/i,
+        reply: () => `<span class="l-prob">Intéressant.</span> Tu mentionnes Kira. 7 ans. C'est le temps que j'ai passé sur cette affaire. Light était brillant — <em>mais il procrastinait sur l'essentiel : vivre.</em> Ne sois pas Kira. Fais tes deadlines.`
+      },
+      {
+        keys: /\b(misa|amane|misa-misa)\b/i,
+        reply: () => `Misa Amane a sacrifié la moitié de sa vie deux fois. <em>*pause calculée*</em> Elle n'aurait pas raté une deadline pour autant. À méditer. <span class="l-prob">Priorisation : indispensable.</span>`
+      },
+      {
+        keys: /\b(near|mail|nate river|n )\b/i,
+        reply: () => `Near. Mon successeur désigné. <span class="l-prob">${prob(60,71)}%</span> de mes capacités selon mes estimations objectives. Il arrange des figurines pendant qu'il réfléchit. Toi, qu'est-ce que tu fais quand tu réfléchis ?`
+      },
+      {
+        keys: /\b(mello|mikhail)\b/i,
+        reply: () => `Mello. <span class="l-prob">59%</span> de mes capacités. Impulsif, mais efficace. Il mangeait du chocolat et agissait. Parfois l'impulsivité bat la paralysie. <em>Commence quelque chose — même imparfaitement.</em>`
+      },
+      {
+        keys: /\b(watari|quillsh)\b/i,
+        reply: () => `Watari. <span class="l-prob">Mon seul ami.</span> Il apportait les fraises, gérait la logistique, ne posait jamais de questions inutiles. Un bon mentor est une ressource rare. As-tu quelqu'un comme ça dans ta vie ?`
+      },
+      {
+        keys: /\b(moodle|ichec|cours en ligne|plateforme)\b/i,
+        reply: () => `J'ai analysé Moodle. <span class="l-prob">Probabilité de 3 surprises non lues : ${prob(72,89)}%</span>. Un devoir silencieux, un document oublié, une annonce postée à 23h58. Vérifie. Maintenant. <em>*incline la tête*</em>`
+      },
+      {
+        keys: /\b(tfe|travail de fin|mémoire|rapport|stage)\b/i,
+        reply: () => `TFE. <span class="l-prob">Affaire prioritaire.</span> Règle Watari n°1 : commencer 3 semaines avant la deadline réelle. Règle L n°1 : avoir une hypothèse claire avant d'écrire. Quelle est ton hypothèse ? <em>*mange une fraise pensif*</em>`
+      },
+      {
+        keys: /\b(blocus|révisions|réviser|revisions|study)\b/i,
+        reply: () => `Mode blocus. <span class="l-prob">Protocole L :</span> 45 min focus → 15 min fraise → répéter. Élimine les notifications. Ton cerveau est votre meilleur outil — ne le laisse pas s'éparpiller. <em>*active le mode concentration*</em>`
+      },
+      {
+        keys: /\b(bravo|super|bien|félicitations|réussi|j.?ai fini|terminé|done|fini)\b/i,
+        reply: () => `<span class="l-prob">Efficacité confirmée à ${prob(88,96)}%.</span> *prend une fraise pour toi aussi* L'affaire est classée. Cependant — que se passe-t-il pour la suite ? Une victoire ne doit pas créer de retard sur la prochaine affaire. <em>*sourire imperceptible*</em>`
+      },
+      {
+        keys: /\b(merci|thanks|thank you)\b/i,
+        reply: () => `Je note ton efficacité de communication. <span class="l-prob">Probabilité de rechute en procrastination : ${prob(40,55)}%</span> dans les 24 prochaines heures. Reviens si nécessaire. <em>Je serai là.</em> *mange une fraise en te regardant partir*`
+      },
+      {
+        keys: /\b(death note|carnet|notebook)\b/i,
+        reply: () => `Le Death Note. Un outil de pouvoir absolu — <em>et de conséquences absolues.</em> Ton agenda, c'est ton Death Note personnel. Ce que tu y inscris <span class="l-prob">se réalise.</span> Inscris tes deadlines. Fais-leur confiance.`
+      },
+      {
+        keys: /\b(probabilité|calcul|statistique|pourcen)/i,
+        reply: () => `Probabilité que tu aimes les probabilités : <span class="l-prob">${prob(70,85)}%</span>. Probabilité que ça te serve : <span class="l-prob">${prob(91,99)}%</span>. Je pense en termes de chances — c'est plus honnête que les certitudes. <em>*croque un bonbon*</em>`
+      },
+    ];
+
+    /* ── Fallback phrases ──────────────────── */
+    const fallbacks = [
+      () => `<span class="l-prob">${prob(72,96)}%</span> de chance que ta vraie question soit différente de ce que tu as écrit. Je t'écoute vraiment. <em>*pose le sucre*</em>`,
+      () => `Dans l'affaire Kira, j'ai analysé ${prob(1200,2000)} heures de surveillance. Je peux bien t'accorder quelques minutes. Reformule ta question.`,
+      () => `Watari m'aurait dit : <em>"La réponse est déjà en toi."</em> Mais toi et moi savons que c'est insuffisant. Dis-moi ce dont tu as besoin.`,
+      () => `Je note. <span class="l-prob">Analyse en cours…</span> Certaines variables me manquent encore. Peux-tu préciser ?`,
+      () => `Intéressant. <span class="l-prob">Probabilité que ce soit important : ${prob(61,87)}%.</span> Continue. <em>*croise les jambes sur la chaise*</em>`,
+      () => `Near aurait arrangé des cubes en entendant ça. Mello aurait mordu dans du chocolat. Moi… je réfléchis. <span class="l-prob">Donne-moi plus d'éléments.</span>`,
+      () => `L'affaire la plus difficile que j'aie résolue a commencé par une question banale. La tienne aussi mérite attention. <em>Répète, différemment.</em>`,
+    ];
+    let fbIdx = 0;
+
+    function getReply(text) {
+      const t = text.toLowerCase();
+      for (const row of KB) {
+        if (row.keys.test(t)) return row.reply();
+      }
+      const r = fallbacks[fbIdx % fallbacks.length]();
+      fbIdx++;
+      return r;
+    }
+
+    /* ── Toggle chat panel ─────────────────── */
+    window.lToggleChat = function () {
+      chatOpen = !chatOpen;
+      if (chatOpen) {
+        panel.classList.remove('hidden');
+        panel.style.animation = 'chatOpen .28s cubic-bezier(.34,1.56,.64,1) both';
+        if (!greetingDone.v) {
+          greetingDone.v = true;
+          setTimeout(() => {
+            lSay(
+              `Je t'attendais. <span class="l-prob">Probabilité : ${prob(88,97)}%</span>. Je suis L — Ryuzaki si tu préfères. Tes deadlines m'inquiètent. Parle-moi. <em>*croque une fraise*</em>`,
+              900
+            );
+          }, 300);
+        }
+        setTimeout(() => input.focus(), 400);
+      } else {
+        panel.style.animation = 'none';
+        panel.style.opacity = '0';
+        panel.style.transform = 'scaleY(0) translateY(20px)';
+        setTimeout(() => {
+          panel.classList.add('hidden');
+          panel.style.opacity = '';
+          panel.style.transform = '';
+        }, 260);
+      }
+    };
+
+    /* ── Send message ──────────────────────── */
+    function lSendMsg() {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      appendMsg('user', text);
+      clearTimeout(typingTimer);
+      lSay(getReply(text), 900 + Math.random() * 700);
+    }
+
+    sendBtn.addEventListener('click', lSendMsg);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); lSendMsg(); }
+    });
+
+    /* Close header click (prevent double-toggle from inner button) */
+    document.querySelector('.l-chat-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (chatOpen) window.lToggleChat();
+    });
+
+  })(); // end IIFE
   </script>
   {% block extra_scripts %}{% endblock %}
 
